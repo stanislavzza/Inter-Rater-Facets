@@ -123,7 +123,16 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
         p_matrix$col1 <- outcome1
         p_matrix$col2 <- outcome2
       
-        t <- data.frame(p=round(p_value,3), k = round(kappa,2),N = N,col1 = outcome1,col2=outcome2,x=.3,y=.15,3)
+        # move the labels if zoomed in (a pain)
+        if (!is.null(zoom)){
+          x_coord <- .1
+          y_coord <- .1
+        } else {
+          x_coord <- .2
+          y_coord <- .2
+        }
+        
+        t <- data.frame(p=round(p_value,3), k = round(kappa,2),N = N,col1 = outcome1,col2=outcome2,x=x_coord,y=y_coord,3) # x=.3,y=.15
         
         # ready to accumulate now
         results <- rbind(results,p_matrix)
@@ -147,7 +156,7 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
   g <- ggplot(data = results, aes(x=outclass,y=inclass)) + 
     geom_text(aes(x=x,y=y,label=paste0("p = ",p, "\nK = ",k,"\nN = ",N) ),data=text_annotation,size=text_size,parse=FALSE) +
     geom_point(size = .5) +
-    geom_line(data = dotted, mapping = aes(x = x, y= y), size = .5,linetype = 1) +
+    geom_line(data = dotted, mapping = aes(x = x, y= y), size = .5,linetype = 1, color = "gray") +
     theme_classic() + xlab(paste("Outcome")) + ylab(paste("Outcome")) +
     facet_grid(col1 ~ col2)
     

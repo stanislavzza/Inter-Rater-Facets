@@ -243,7 +243,7 @@ shinyServer(function(input, output) {
     
     if (!is.null(isolate(input$targetVarRangeIn))) { #zoom
       zoom = which(names(n_matrix) %in% isolate(input$targetVarRangeIn))
-      size = 7
+      size = 5
     } else {
       zoom = NULL
       size = 3
