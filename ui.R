@@ -15,6 +15,8 @@
 
 library(shiny)
 
+options(shiny.maxRequestSize = 200*1024^2) # allow large files
+
 shinyUI( #fluidPage(
   pageWithSidebar(
     headerPanel(""),
@@ -37,6 +39,7 @@ shinyUI( #fluidPage(
       
       htmlOutput("targetVar"),          # select the variable to predict
       htmlOutput("targetRangeIn"),    # select the inclass
+      htmlOutput("sampleSize"),
       htmlOutput("action")
     ), #end of sidebar panel
     mainPanel(

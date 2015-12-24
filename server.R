@@ -71,15 +71,14 @@ shinyServer(function(input, output) {
     selectInput("ratingNames", "Rating Names",  namelist )
   })
   
-  #INPUT--------------------- Select Ratings names column-----------------------
+  #INPUT--------------------- Select Ratings Values column-----------------------
   output$ratingVals <- renderUI({ 
     if (rvals$updateDataInfo < 1) return("") # no file yet
     if(rvals$dataLoaded) return("") #all done with this
-    if(denull(input$subjectID)== 0) return("")
+    if(denull(input$subjectID)== 0 || denull(input$ratingNames,"In Columns")== "In Columns") return("")
     namelist <- as.list(sort(names(df)))
     namelist <- namelist[namelist != input$subjectID]
     namelist <- namelist[namelist != input$ratingNames]
-    namelist <- c("In Columns",namelist)
     selectInput("ratingVals", "Rating Values",  namelist )
   })
   
@@ -216,6 +215,14 @@ shinyServer(function(input, output) {
     selectInput("targetVarRangeIn", "Optional zoom (pick two)", namelist, multiple = TRUE )
   })
   
+  #INPUT -------------------- Choose a sample size for large samples --------------------------------
+  output$sampleSize <- renderUI({ 
+    if (!rvals$dataLoaded || denull(input$targetVar) == 0 || denull(input$subjectID) == 0) return("")
+    n <- nrow(df)
+    if(n < 10000) return("")
+    sliderInput("sampleSize", "Sample Size", 10000, n, 10000) 
+  })
+  
   #INPUT -------------------- Button to compute the stats
   output$action <- renderUI({
     if (!rvals$dataLoaded || denull(input$targetVar) == 0 || denull(input$subjectID) == 0) return("")
@@ -226,6 +233,11 @@ shinyServer(function(input, output) {
   #OUTPUT-------------------------------graph the agreement
   output$graph <- renderPlot({
     if(denull(input$action[1],0)==0) return() # tied to action button
+    
+    if (denull(isolate(input$sampleSize)) > 1){
+      subsample <- sample(1:nrow(df),isolate(input$sampleSize))
+      df <- df[subsample,]
+    }
     
     n_matrix <- as.data.frame.matrix(table(df[[input$subjectID]],df[[input$targetVar]]) )
     

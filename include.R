@@ -63,7 +63,7 @@ simulate_lambda <- function(n_matrix, column,column2, iterations){
   ls
 } 
 
-lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL){
+lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, graph_max = 10000){
   results <- data.frame() # place to put graph information
   text_annotation <- data.frame()
   dotted <- data.frame() # reference line
@@ -74,7 +74,9 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL){
   } else {
     column_range <- zoom
   }
-  
+  withProgress(message = 'Calculating', value = 0, {
+    prog_n <- 2 / ( length(column_range)*(length(column_range)+1) )
+    
   for( column in column_range) { ######### choose column 1
     outcome1 <- names(n_matrix)[column]
     for( column2 in column_range) {   
@@ -128,10 +130,19 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL){
         text_annotation <- rbind(text_annotation,t)
         
         dotted <- rbind(dotted, data.frame(x = ls$arc$x, y = ls$arc$y, col1 = outcome1,col2=outcome2))
+        incProgress(prog_n)
     }
     
   }
+  })
   
+  # a huge data set takes forever to plot, so reduce it if that's the case
+  if (nrow(results) > graph_max) { # 10000 by default
+    subsample <- sample(1:nrow(results), graph_max)
+    results <- results[subsample,]
+  }
+  
+  withProgress(message = 'Plotting', value = 0, {
   #require(grid) # in order to make arrows
   g <- ggplot(data = results, aes(x=outclass,y=inclass)) + 
     geom_text(aes(x=x,y=y,label=paste0("p = ",p, "\nK = ",k,"\nN = ",N) ),data=text_annotation,size=text_size,parse=FALSE) +
@@ -139,7 +150,11 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL){
     geom_line(data = dotted, mapping = aes(x = x, y= y), size = .5,linetype = 1) +
     theme_classic() + xlab(paste("Outcome")) + ylab(paste("Outcome")) +
     facet_grid(col1 ~ col2)
+    
+    incProgress(.5)
+  
     print(g)
+  })
 }
 
 
