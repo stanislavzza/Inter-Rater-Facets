@@ -47,16 +47,21 @@ shinyUI( #fluidPage(
       tags$style(type="text/css",
                  ".shiny-output-error { visibility: hidden; }",
                  ".shiny-output-error:before { visibility: hidden; }"),
-      tabsetPanel("Main",
+      tabsetPanel("Main", id = "tabs",
                   
-                  tabPanel("Data",
+                  tabPanel("Data", 
                            tableOutput("dataPanelHeader"),
                            dataTableOutput("varStats")
                   ), # end of Data Tabpanel
-                  
-                  tabPanel("Agreement",
+                  tabPanel("Distribution",
                            fluidRow(
-                             column(12, plotOutput('graph'))
+                             column(12, plotOutput('distGraph')),
+                             column(12, textOutput('chiSquared'))
+                           )
+                  ),
+                  tabPanel("Facets", 
+                           fluidRow(
+                             column(12, plotOutput('facetGraph',height = 650))
                            )
                   )
       ) # end of tabsetPanel

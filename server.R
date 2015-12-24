@@ -202,6 +202,8 @@ shinyServer(function(input, output) {
     # turning off the newvars update for now--it's quite annoying
     #rvals$newVarExists # update the list of names if a new var is created
     if (!rvals$dataLoaded || denull(input$subjectID) == 0) return("")
+    if(denull(input$tabs) != "Facets" && denull(input$tabs) != "Distribution" ) return("")
+    
     namelist <- as.list(sort(names(df)))
     namelist <- namelist[namelist != input$subjectID]
     
@@ -211,6 +213,7 @@ shinyServer(function(input, output) {
   #INPUT -------------------- Select the target inclass range--------------------------------
   output$targetRangeIn <- renderUI({ 
     if (!rvals$dataLoaded || denull(input$targetVar) == 0 || denull(input$subjectID) == 0) return("")
+    if(denull(input$tabs) != "Facets") return("")
     namelist <- as.list(names(table(df[[input$targetVar]])))
     selectInput("targetVarRangeIn", "Optional zoom (pick two)", namelist, multiple = TRUE )
   })
@@ -218,6 +221,7 @@ shinyServer(function(input, output) {
   #INPUT -------------------- Choose a sample size for large samples --------------------------------
   output$sampleSize <- renderUI({ 
     if (!rvals$dataLoaded || denull(input$targetVar) == 0 || denull(input$subjectID) == 0) return("")
+    if(denull(input$tabs) != "Facets") return("")
     n <- nrow(df)
     if(n < 10000) return("")
     sliderInput("sampleSize", "Sample Size", 10000, n, 10000) 
@@ -227,11 +231,12 @@ shinyServer(function(input, output) {
   output$action <- renderUI({
     if (!rvals$dataLoaded || denull(input$targetVar) == 0 || denull(input$subjectID) == 0) return("")
     if (!is.null(input$targetVarRangeIn) && length(input$targetVarRangeIn) != 2) return ("")
+    if(denull(input$tabs) != "Facets") return("")
     actionButton("action","Compute")
   })
   
   #OUTPUT-------------------------------graph the agreement
-  output$graph <- renderPlot({
+  output$facetGraph <- renderPlot({
     if(denull(input$action[1],0)==0) return() # tied to action button
     
     if (denull(isolate(input$sampleSize)) > 1){
@@ -252,6 +257,20 @@ shinyServer(function(input, output) {
     lambda_graph_facets(n_matrix,text_size=size,zoom = zoom)
   })
   
+  output$distGraph <- renderPlot({
+    tbl<- table(df[[input$targetVar]])
+    tdf <- data.frame(Response = names(tbl), Count = tbl[1:length(tbl)])
+    avg <- sum(tdf$Count) / nrow(tdf)
+
+    ggplot(tdf,aes(x=Response, y = Count)) + geom_bar(stat="identity") + geom_hline(yintercept = avg)
+  })
+  
+  #OUTPUT-----------------------------text to give Fisher's result--------------------------------------
+  output$chiSquared <- renderText({
+    tbl<- table(df[[input$targetVar]])
+    f <- chisq.test(tbl)
+    paste("Chi-squared test versus uniform distribution, p-value = ",round(f$p.value,3))
+  })
   
   #OBSERVE---------------------------------- debugging function -----------------------------------------
   observe(label="console",{
