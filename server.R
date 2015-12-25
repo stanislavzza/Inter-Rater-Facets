@@ -235,6 +235,16 @@ shinyServer(function(input, output) {
     actionButton("action","Compute")
   })
   
+  #INPUT -------------------- Choose a sample size for large samples --------------------------------
+  output$distroRadio <- renderUI({ 
+    if (!rvals$dataLoaded || denull(input$targetVar) == 0 || denull(input$subjectID) == 0) return("")
+    if(denull(input$tabs) != "Distribution") return("")
+    radio_choices <- c("All ratings"="all","Matched Ratings"="matched","Expected (+) vs Actual Matches"="expected")
+    
+    radioButtons("distroRadio", "Graph Mode", radio_choices, selected = "all", inline = FALSE, width = NULL)
+  })
+  
+  
   #OUTPUT-------------------------------graph the agreement
   output$facetGraph <- renderPlot({
     if(denull(input$action[1],0)==0) return() # tied to action button
@@ -257,19 +267,61 @@ shinyServer(function(input, output) {
     lambda_graph_facets(n_matrix,text_size=size,zoom = zoom)
   })
   
+  #OUTPUT--------------------------------------distribution graphs ----------------------------------
   output$distGraph <- renderPlot({
-    tbl<- table(df[[input$targetVar]])
-    tdf <- data.frame(Response = names(tbl), Count = tbl[1:length(tbl)])
-    avg <- sum(tdf$Count) / nrow(tdf)
+    if(denull(input$distroRadio) == "all") {
+      tbl<- table(df[[input$targetVar]])
+      tdf <- data.frame(Response = names(tbl), Count = tbl[1:length(tbl)])
+      avg <- sum(tdf$Count) / nrow(tdf)
+  
+      ggplot(tdf,aes(x=Response, y = Count)) + geom_bar(stat="identity",fill="#777777") + geom_hline(yintercept = avg)
+    } else if (denull(input$distroRadio) == "matched") {
+      
+      tbl <- table(df[[isolate(input$subjectID)]],df[[input$targetVar]])
+      tbl <- tbl[rowSums(tbl) > 1,]
 
-    ggplot(tdf,aes(x=Response, y = Count)) + geom_bar(stat="identity") + geom_hline(yintercept = avg)
+      tdf <- data.frame(Response = colnames(tbl), Count = colSums(tbl))
+      avg <- sum(tdf$Count) / nrow(tdf)
+      
+      ggplot(tdf,aes(x=Response, y = Count)) + geom_bar(stat="identity",fill="#777777") + geom_hline(yintercept = avg)
+    } else { # expected versus actual
+      tbl <- table(df[[isolate(input$subjectID)]],df[[input$targetVar]])
+      tbl <- tbl[rowSums(tbl) > 1,]
+      expected <- (colSums(tbl)/sum(tbl))*colSums(tbl)
+      actual <- colSums(tbl^2 / rowSums(tbl) )
+      
+      expected_col_prob <- expected /colSums(tbl)
+      actual_col_prob <- actual / colSums(tbl)
+      bonus <- paste0(c("-","+")[(actual_col_prob > expected_col_prob) + 1],round((actual_col_prob - expected_col_prob)*100,1),'%')
+      
+      expected_prob_total <- sum(expected) / sum(tbl)
+      actual_prob_total <- sum(actual) / sum(tbl) 
+      kappa <- (actual_prob_total-expected_prob_total)/(1 - expected_prob_total)
+      title <- paste("Asymptotic Kappa =",round(kappa,2))
+      
+      tdf <- data.frame(Response = colnames(tbl), Count = actual, Expected = expected,label = bonus)
+  
+        ggplot(tdf,aes(x=Response, y = Count)) + geom_bar(stat="identity",fill="#777777") + 
+        geom_point(aes(y = Expected),shape=3,color="black",size = 5 ) + ggtitle(title) +
+        geom_text(aes(label = label), vjust = -.5)
+    }
+    
   })
   
   #OUTPUT-----------------------------text to give Fisher's result--------------------------------------
   output$chiSquared <- renderText({
-    tbl<- table(df[[input$targetVar]])
-    f <- chisq.test(tbl)
-    paste("Chi-squared test versus uniform distribution, p-value = ",round(f$p.value,3))
+    if(denull(input$distroRadio) == "all") {
+      tbl<- table(df[[input$targetVar]])
+      f <- chisq.test(tbl)
+      paste0("Chi-squared test versus uniform distribution, (X^2,DF,p-value) = (",round(f$statistic,3),",",f$parameter,",",round(f$p.value,3),")")
+    }  else if (denull(input$distroRadio) == "matched") {
+      tbl <- table(df[[isolate(input$subjectID)]],df[[input$targetVar]])
+      tbl <- tbl[rowSums(tbl) > 1,]
+      
+      f <- chisq.test(colSums(tbl))
+      paste0("Chi-squared test versus uniform distribution, (X^2,DF,p-value) = (",round(f$statistic,3),",",f$parameter,",",round(f$p.value,3),")")
+      
+    } else { return("The marks indicate where random aggreement levels are expected. The bars are asymptotic actuals. The numbers at the top gives the difference.")}
   })
   
   #OBSERVE---------------------------------- debugging function -----------------------------------------

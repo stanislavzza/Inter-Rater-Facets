@@ -40,7 +40,8 @@ shinyUI( #fluidPage(
       htmlOutput("targetVar"),          # select the variable to predict
       htmlOutput("targetRangeIn"),    # select the inclass
       htmlOutput("sampleSize"),
-      htmlOutput("action")
+      htmlOutput("action"),
+      htmlOutput("distroRadio")
     ), #end of sidebar panel
     mainPanel(
       # turn off the messages. They still appear in the console. 
