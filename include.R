@@ -235,3 +235,4 @@ lambda_stats_n <- function(p,counts, graph=FALSE){
   list(lambda_mean = lambda_mean, lambda_se = sqrt(lambda_var), arc = arc, arc_length = arc_length)
   
 }
+
