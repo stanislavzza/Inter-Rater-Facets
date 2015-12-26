@@ -23,7 +23,7 @@ shinyUI( #fluidPage(
     sidebarPanel(
       h3("Inter-Rater Facets"),
       
-      actionButton("console","server console"), # uncomment this to enable debugging <------------
+      #actionButton("console","server console"), # uncomment this to enable debugging <------------
       
       ########### Loading Data ##################################
       

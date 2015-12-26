@@ -390,9 +390,9 @@ shinyServer(function(input, output,session) {
         kappa <- (actual_prob_total-expected_prob_total)/(1 - expected_prob_total)
         title <- paste("Estimated Asymptotic Kappa =",round(kappa,2))
         
-        tdf <- data.frame(Response = colnames(tbl), Count = actual, Expected = expected,label = bonus)
+        tdf <- data.frame(Response = colnames(tbl), Match_Rate = actual, Expected = expected,label = bonus)
     
-          ggplot(tdf,aes(x=Response, y = Count)) + geom_bar(stat="identity",fill="#777777") + 
+          ggplot(tdf,aes(x=Response, y = Match_Rate)) + geom_bar(stat="identity",fill="#777777") + 
           geom_point(aes(y = Expected),shape=3,color="black",size = 5 ) + ggtitle(title) +
           geom_text(aes(label = label), vjust = -.5)
       }
