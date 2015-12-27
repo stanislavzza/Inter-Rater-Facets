@@ -295,7 +295,7 @@ shinyServer(function(input, output,session) {
   output$simSize <- renderUI({ 
     if (!rvals$dataLoaded || denull(input$targetVar) == 0 ) return("")
     if(denull(input$tabs) != "Distribution") return("")
-    if(denull(input$distroRadio) != "sim") return("")
+    if(denull(input$distroRadio) != "expected") return("")
     sliderInput("simSize", "Simulation Size", 1, 100, 1) 
   })
   
@@ -303,7 +303,7 @@ shinyServer(function(input, output,session) {
   output$runSim <- renderUI({
     if (!rvals$dataLoaded || denull(input$targetVar) == 0 ) return("")
     if(denull(input$tabs) != "Distribution") return("")
-    if(denull(input$distroRadio) != "sim") return("")
+    if(denull(input$distroRadio) != "expected") return("")
     actionButton("runSim","Compute Graph")
   })
   
@@ -334,7 +334,7 @@ shinyServer(function(input, output,session) {
   output$distGraph <- renderPlot({
     
      n_sims <- denull(isolate(input$simSize),1)
-     target <- denull(input$targetVar)
+     target <- denull(isolate(input$targetVar))
     if(denull(input$distroRadio) == "all") {
       tbl<- table(df[[target]])
       tdf <- data.frame(Response = names(tbl), Count = tbl[1:length(tbl)])
@@ -350,7 +350,7 @@ shinyServer(function(input, output,session) {
       avg <- sum(tdf$Count) / nrow(tdf)
       
       ggplot(tdf,aes(x=Response, y = Count)) + geom_bar(stat="identity",fill="#777777") + geom_hline(yintercept = avg)
-    } else if (denull(input$distroRadio) == "sim") { # expected versus actual simulation
+    } else if (denull(input$distroRadio) == "expected") { # expected versus actual
       if (denull(input$runSim)==0) return("") #dependency on the button
         tbl <- table(df[[SID]],df[[target]])
         tbl <- tbl[rowSums(tbl) > 1,]
@@ -395,41 +395,6 @@ shinyServer(function(input, output,session) {
           ggplot(tdf,aes(x=Response, y = Match_Rate)) + geom_bar(stat="identity",fill="#777777") + 
           geom_point(aes(y = Expected),shape=3,color="black",size = 5 ) + ggtitle(title) +
           geom_text(aes(label = label), vjust = -.5)
-    } else if(denull(input$distroRadio) == "expected"){
-        # this code is based on that in library(irr) in  kappam.fleiss(ratings, exact = FALSE, detail = TRUE)
-        tbl <- table(df[[SID]],df[[target]])
-        tbl <- tbl[rowSums(tbl) > 1,]
-        N <- sum(tbl)
-        nr <- rowSums(tbl)
-        coln <- colSums(tbl)
-        pr <- coln / N
-        
-        #nro <- N / nrow(tbl) # original forumla assumes constant number of ratings per subject
-        
-        pj <- apply(tbl, 2, sum)/N # column proportions (chance a particular response is picked)
-        
-        # for each row of data, corresponding to one subject, we do this:
-        # we choose one rating from the n_k in column k to see if it will be matched by the next one we draw
-        # the chances of that are however many are left in the kth column (n_k - 1) divided by the total left
-        # in the row, so n_k*(n_k-1)/(n-1), where n is the row total. Then we condition on the kth column by
-        # Pr[match  | column = k] = Pr[match and column = k] / Pr[column = k], so we have to now divide by
-        # the probability of picking the first one in column k, which is sum of col k divided by the total. 
-        # the original formula cannot handle varying row sizes
-        #pjko <- (apply(tbl^2, 2, sum) - N * pj)/(N * (nro - 1) * pj) # original formula, with fixed raters
-        
-        pjk <- colSums(t(t(tbl^2 - tbl)/(nr-1))) / coln  # formula adjusted for varying number of ratings per subject
-        
-        kappaK <- (pjk - pj)/(1 - pj)
-        
-        bonus <- paste0(c("","+")[(pjk > pj) + 1],round((pjk - pj)*100),'% K=',round(kappaK,2))
-        
-        title <- paste("Conditional Fleiss Kappas")
-        
-        tdf <- data.frame(Response = colnames(tbl), Match_Rate = pjk, Expected = pj,label = bonus,stringsAsFactors = FALSE)
-        
-        ggplot(tdf,aes(x=Response, y = Match_Rate)) + geom_bar(stat="identity",fill="#777777") + 
-          geom_point(aes(y = Expected),shape=3,color="black",size = 5 ) + ggtitle(title) +
-          geom_text(aes(label = label), vjust = -.5)
       }
   })
   
@@ -446,9 +411,8 @@ shinyServer(function(input, output,session) {
       f <- chisq.test(colSums(tbl))
       paste0("Chi-squared test versus uniform distribution, (X^2,DF,p-value) = (",round(f$statistic,3),",",f$parameter,",",round(f$p.value,3),")")
       
-    } else { return("The marks indicate where agreement levels would be expected if raters randomly assigned values based on the distribution
-                      of the data. The bars are the actual (non-asymptotic) match rates, and the numbers at the top give the difference in the 
-                      percentages matched. K is the conditional kappa for the response type in that column.")}
+    } else { return("The marks indicate where random agreement levels are expected. The bars are asymptotic actuals.
+                    The numbers at the top gives the estimated difference in the percentages matched.")}
   })
   
   #OBSERVE---------------------------------- debugging function -----------------------------------------
