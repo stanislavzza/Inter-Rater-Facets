@@ -13,4 +13,4 @@ install.packages(c("shiny","tidyr","ggplot2"))
 
 Now use the File menu to find and open ui.R in the InterRaterFacets folder. Look for a green arrow with "Run App" near the top of the screen. Click that to run the app.
 
-For instructions and implementation notes, see http://highered.blogspot.com/2015/12/inter-rater-facets.html
+For instructions and implementation notes, see the wiki: http://github.com/stanislavzza/Inter-Rater/wiki
