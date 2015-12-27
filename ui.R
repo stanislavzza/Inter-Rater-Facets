@@ -27,7 +27,7 @@ shinyUI( #fluidPage(
       
       ########### Loading Data ##################################
       
-      helpText(a("[See User Guide]",href="http://highered.blogspot.com/2015/12/inter-rater-facets.html")),
+      helpText(a("[See User Guide]",href="http://github.com/stanislavzza/Inter-Rater/wiki")),
       helpText("Send feedback to deubanks.office@gmail.com"),
       htmlOutput("dataFileUploader"),   # upload data files
       htmlOutput("dataType"),
@@ -42,9 +42,7 @@ shinyUI( #fluidPage(
       htmlOutput("targetRangeIn"),    # select the inclass
       htmlOutput("sampleSize"),
       htmlOutput("action"),
-      htmlOutput("distroRadio"),
-      htmlOutput("simSize"),
-      htmlOutput("runSim")
+      htmlOutput("distroRadio")
     ), #end of sidebar panel
     mainPanel(
       # turn off the messages. They still appear in the console. 

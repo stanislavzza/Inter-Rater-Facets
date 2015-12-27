@@ -291,22 +291,6 @@ shinyServer(function(input, output,session) {
     radioButtons("distroRadio", "Graph Mode", radio_choices, selected = select, inline = FALSE, width = NULL)
   })
   
-  #INPUT -------------------- Choose a simulation size for the estimated kappa --------------------------------
-  output$simSize <- renderUI({ 
-    if (!rvals$dataLoaded || denull(input$targetVar) == 0 ) return("")
-    if(denull(input$tabs) != "Distribution") return("")
-    if(denull(input$distroRadio) != "sim") return("")
-    sliderInput("simSize", "Simulation Size", 1, 100, 1) 
-  })
-  
-  #INPUT -------------------- Button to recompute simulation
-  output$runSim <- renderUI({
-    if (!rvals$dataLoaded || denull(input$targetVar) == 0 ) return("")
-    if(denull(input$tabs) != "Distribution") return("")
-    if(denull(input$distroRadio) != "sim") return("")
-    actionButton("runSim","Compute Graph")
-  })
-  
   
   #OUTPUT-------------------------------graph the agreement
   output$facetGraph <- renderPlot({
@@ -350,51 +334,6 @@ shinyServer(function(input, output,session) {
       avg <- sum(tdf$Count) / nrow(tdf)
       
       ggplot(tdf,aes(x=Response, y = Count)) + geom_bar(stat="identity",fill="#777777") + geom_hline(yintercept = avg)
-    } else if (denull(input$distroRadio) == "sim") { # expected versus actual simulation
-      if (denull(input$runSim)==0) return("") #dependency on the button
-        tbl <- table(df[[SID]],df[[target]])
-        tbl <- tbl[rowSums(tbl) > 1,]
-        
-        #simulate expected matches
-        total <- 0
-        total_list <- c()
-        total_denom <- 0
-        nr <- rowSums(tbl)
-        pr <- colSums(tbl)/sum(tbl)
-        progress_inc <- 1/(length(nr)*n_sims)
-        # Progress Bar ################
-        withProgress(message = 'Calculating', value = 0, {
-          for(sim in 1:n_sims) {
-            sim_total <- 0
-            denom <- 0
-            for(i in 1:length(nr)){
-              d <- rmultinom(1,size = nr[i], prob = pr) #random multinomial based on global distribution and local sample size
-              denom <- denom + (d>0) # we won't average in the zeros
-              sim_total <- sim_total + (d / nr[i])^2 
-              incProgress(progress_inc)
-            }
-            total_list <- c(total_list,sim_total/denom)
-            total <- total + sim_total/denom
-          }
-        })
-        sim_matrix <- matrix(total_list,length(sim_total))
-        
-        expected <- total / n_sims
-        actual <- colSums(( tbl / rowSums(tbl) )^2)/colSums(matrix(tbl > 0, ncol = ncol(tbl))) # omit zeros from calculation
-        ps <- rowSums(sim_matrix > actual)/n_sims # estimate a p-value for each column
-        
-        bonus <- paste0(c("-","+")[(actual > expected) + 1],round((actual - expected)*100),'%') # p=',round(ps,2))
-        
-        expected_prob_total <- sum(expected * pr) 
-        actual_prob_total <- sum(actual * pr)  
-        kappa <- (actual_prob_total-expected_prob_total)/(1 - expected_prob_total)
-        title <- paste("Estimated Asymptotic Kappa =",round(kappa,2))
-        
-        tdf <- data.frame(Response = colnames(tbl), Match_Rate = actual, Expected = expected,label = bonus)
-    
-          ggplot(tdf,aes(x=Response, y = Match_Rate)) + geom_bar(stat="identity",fill="#777777") + 
-          geom_point(aes(y = Expected),shape=3,color="black",size = 5 ) + ggtitle(title) +
-          geom_text(aes(label = label), vjust = -.5)
     } else if(denull(input$distroRadio) == "expected"){
         # this code is based on that in library(irr) in  kappam.fleiss(ratings, exact = FALSE, detail = TRUE)
         tbl <- table(df[[SID]],df[[target]])
@@ -404,20 +343,22 @@ shinyServer(function(input, output,session) {
         coln <- colSums(tbl)
         pr <- coln / N
         
-        #nro <- N / nrow(tbl) # original forumla assumes constant number of ratings per subject
+        # nro <- N / nrow(tbl) # original forumla assumes constant number of ratings per subject
         
         pj <- apply(tbl, 2, sum)/N # column proportions (chance a particular response is picked)
         
         # for each row of data, corresponding to one subject, we do this:
         # we choose one rating from the n_k in column k to see if it will be matched by the next one we draw
         # the chances of that are however many are left in the kth column (n_k - 1) divided by the total left
-        # in the row, so n_k*(n_k-1)/(n-1), where n is the row total. Then we condition on the kth column by
+        # in the row, so the prob = (n_k-1)/(n-1), where n is the row total. Then we condition on the kth column by
         # Pr[match  | column = k] = Pr[match and column = k] / Pr[column = k], so we have to now divide by
-        # the probability of picking the first one in column k, which is sum of col k divided by the total. 
+        # the probability of picking the first one in column k and this particular row, which is n_k/column k sum/N
         # the original formula cannot handle varying row sizes
-        #pjko <- (apply(tbl^2, 2, sum) - N * pj)/(N * (nro - 1) * pj) # original formula, with fixed raters
+        # pjko <- (apply(tbl^2, 2, sum) - N * pj)/(N * (nro - 1) * pj) # original formula, with fixed raters
         
-        pjk <- colSums(t(t(tbl^2 - tbl)/(nr-1))) / coln  # formula adjusted for varying number of ratings per subject
+        # pjk <- colSums(t(t(tbl^2 - tbl)/(nr-1))) / coln  # formula adjusted for varying number of ratings per subject
+        
+        pjk <- colSums((tbl^2 - tbl)/(nr-1)) / coln  # asymptotic formula adjusted for varying number of ratings per subject
         
         kappaK <- (pjk - pj)/(1 - pj)
         
