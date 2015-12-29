@@ -123,13 +123,13 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
         p_matrix$col1 <- outcome1
         p_matrix$col2 <- outcome2
       
-        # move the labels if zoomed in (a pain)
+        # move the labels if zoomed in
         if (!is.null(zoom)){
-          x_coord <- .1
-          y_coord <- .1
+          x_coord <- p_2 /2
+          y_coord <- p_1/5
         } else {
-          x_coord <- .2
-          y_coord <- .2
+          x_coord <- p_2 # save these to calculate best value
+          y_coord <- p_1
         }
         
         t <- data.frame(p=round(p_value,3), k = round(kappa,2),N = N,col1 = outcome1,col2=outcome2,x=x_coord,y=y_coord,3) # x=.3,y=.15
@@ -149,6 +149,13 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
   if (nrow(results) > graph_max) { # 10000 by default
     subsample <- sample(1:nrow(results), graph_max)
     results <- results[subsample,]
+  }
+  
+  if(is.null(zoom)) { # calculate placement of data
+    x_coord <- max(text_annotation$x) / 2
+    y_coord <- max(text_annotation$y) / 5
+    text_annotation$x <- x_coord
+    text_annotation$y <- y_coord
   }
   
   withProgress(message = 'Plotting', value = 0, {
