@@ -337,18 +337,18 @@ shinyServer(function(input, output,session) {
     } else if(denull(input$distroRadio) == "expected"){
         # this code is based on that in library(irr) in  kappam.fleiss(ratings, exact = FALSE, detail = TRUE)
         tbl <- table(df[[SID]],df[[target]])
-        tbl <- tbl[rowSums(tbl) > 1,]
-        N <- sum(tbl)
-        nr <- rowSums(tbl)
-        coln <- colSums(tbl)
-        pr <- coln / N
+        tbl <- tbl[rowSums(tbl) > 1,] # must have at least two observations per subject
+        N <- sum(tbl) # total number of ratings
+        nr <- rowSums(tbl) # number of ratings for each subject
+        coln <- colSums(tbl) # number of ratings for each rating category
         
         # nro <- N / nrow(tbl) # original forumla assumes constant number of ratings per subject
         
-        pj <- apply(tbl, 2, sum)/N # column proportions (chance a particular response is picked)
+        pj <- coln/N # column proportions (chance a particular response is picked)
         
         # for each row of data, corresponding to one subject, we do this:
-        # we choose one rating from the n_k in column k to see if it will be matched by the next one we draw
+        # we choose one rating from the n_k in column k to see if it will be matched by the next one we draw for the
+        # same subject. 
         # the chances of that are however many are left in the kth column (n_k - 1) divided by the total left
         # in the row, so the prob = (n_k-1)/(n-1), where n is the row total. Then we condition on the kth column by
         # Pr[match  | column = k] = Pr[match and column = k] / Pr[column = k], so we have to now divide by
@@ -358,13 +358,22 @@ shinyServer(function(input, output,session) {
         
         # pjk <- colSums(t(t(tbl^2 - tbl)/(nr-1))) / coln  # formula adjusted for varying number of ratings per subject
         
-        pjk <- colSums((tbl^2 - tbl)/(nr-1)) / coln  # asymptotic formula adjusted for varying number of ratings per subject
+        t2mt <- tbl^2 - tbl
+        
+        pjk <- colSums(t2mt/(nr-1)) / coln  # kappa formula adjusted for varying number of ratings per subject
         
         kappaK <- (pjk - pj)/(1 - pj)
         
         bonus <- paste0(c("","+")[(pjk > pj) + 1],round((pjk - pj)*100),'% K=',round(kappaK,2))
         
-        title <- paste("Conditional Fleiss Kappas")
+        ##### Now calculate the overall Kappa, based on these two lines from library(irr)
+        #agreeP <- sum((apply(ttab^2, 1, sum) - nr)/(nr * (nr - 1))/ns) # this assumes same number of ratings per subject
+        #chanceP <- sum(apply(ttab, 2, sum)^2)/(ns * nr)^2
+        agreeP <- sum(t2mt / (nr*(nr-1)) / (N/nr))
+        chanceP <- sum(coln^2 / N^2)
+        k <- (agreeP - chanceP)/(1 - chanceP)
+        
+        title <- paste("Conditional Fleiss Kappas, K = ", round(k,2))
         
         tdf <- data.frame(Response = colnames(tbl), Match_Rate = pjk, Expected = pj,label = bonus,stringsAsFactors = FALSE)
         
