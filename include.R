@@ -104,6 +104,9 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
         l <- sum(sqrt(rowSums(p_matrix*p_matrix)))/N # actual length
         kappa <- (l - ls$lambda_mean)/(1- ls$lambda_mean)
         
+        # compute gini index
+        gini <- 2*computeAUC(p_matrix) - 1
+        
         if (iterations > 0){ # generate p-value, which is expensive
           p_value <- simulate_p_value(p_matrix,1,2,iterations)
         } else {
@@ -132,7 +135,7 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
           y_coord <- p_1
         }
         
-        t <- data.frame(p=round(p_value,3), k = round(kappa,2),N = N,col1 = outcome1,col2=outcome2,x=x_coord,y=y_coord,3) # x=.3,y=.15
+        t <- data.frame(p=round(p_value,3), k = round(kappa,2),gini = gini, N = N,col1 = outcome1,col2=outcome2,x=x_coord,y=y_coord,3) # x=.3,y=.15
         
         # ready to accumulate now
         results <- rbind(results,p_matrix)
@@ -161,7 +164,7 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
   withProgress(message = 'Plotting', value = 0, {
   #require(grid) # in order to make arrows
   g <- ggplot(data = results, aes(x=outclass,y=inclass)) + 
-    geom_text(aes(x=x,y=y,label=paste0("p = ",p, "\nK = ",k,"\nN = ",N) ),data=text_annotation,size=text_size,parse=FALSE) +
+    geom_text(aes(x=x,y=y,label=paste0("p = ",p, "\nK = ",k,"\nGini = ",round(gini,2),"\nN = ",N) ),data=text_annotation,size=text_size,parse=FALSE) +
     geom_point(size = .5) +
     geom_line(data = dotted, mapping = aes(x = x, y= y), size = .5,linetype = 1, color = "gray") +
     theme_classic() + xlab(paste("Outcome")) + ylab(paste("Outcome")) +
@@ -243,3 +246,30 @@ lambda_stats_n <- function(p,counts, graph=FALSE){
   
 }
 
+computeAUC <- function(tbl){
+  #calculate the AUC for a contingiency table, given the permutation order
+  
+  if (sum(tbl[,2])==0 || sum(tbl[,1]) ==0 ){
+    return(NA) 
+  }
+  
+  rates <- tbl[,2]/tbl[,1]
+  o <- order(-rates) # so rates[o[1]] should be the largest
+  
+  yval <- cumsum(tbl[,2][o])/sum(tbl[,2])
+  xval <- cumsum(tbl[,1][o])/sum(tbl[,1])
+  
+  mysum <- 0
+  oldx <- 0
+  oldy <-0
+  for (j in 1:length(xval)) {
+    x <- unname(xval[j])
+    y <- unname(yval[j])
+    mysum <- mysum + x*oldy - y*oldx
+    oldx <- x
+    oldy <- y
+  }
+  t <- (mysum + oldy)/2
+  
+  return(t) # t may be less than .5 if the order is bad
+}

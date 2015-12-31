@@ -291,7 +291,6 @@ shinyServer(function(input, output,session) {
     radioButtons("distroRadio", "Graph Mode", radio_choices, selected = select, inline = FALSE, width = NULL)
   })
   
-  
   #OUTPUT-------------------------------graph the agreement
   output$facetGraph <- renderPlot({
     if(denull(input$action[1],0)==0) return() # tied to action button
