@@ -291,6 +291,13 @@ shinyServer(function(input, output,session) {
     radioButtons("distroRadio", "Graph Mode", radio_choices, selected = select, inline = FALSE, width = NULL)
   })
   
+  #INPUT -------------------- Choose Normalization -----------------------------
+  output$normalizeCB <- renderUI({
+    if (!rvals$dataLoaded ) return("")
+    if(denull(input$tabs) != "Facets") return("")
+    checkboxInput("normalizeCB", "Equalize Distribution", value = FALSE, width = NULL)
+  })
+  
   #OUTPUT-------------------------------graph the agreement
   output$facetGraph <- renderPlot({
     if(denull(input$action[1],0)==0) return() # tied to action button
@@ -310,7 +317,7 @@ shinyServer(function(input, output,session) {
       size = 3
     }
    
-    lambda_graph_facets(n_matrix,text_size=size,zoom = zoom)
+    lambda_graph_facets(n_matrix,text_size=size,zoom = zoom, normalize = input$normalizeCB)
   })
   
   #OUTPUT--------------------------------------distribution graphs ----------------------------------
@@ -320,10 +327,10 @@ shinyServer(function(input, output,session) {
      target <- denull(input$targetVar)
     if(denull(input$distroRadio) == "all") {
       tbl<- table(df[[target]])
-      tdf <- data.frame(Response = names(tbl), Count = tbl[1:length(tbl)])
-      avg <- sum(tdf$Count) / nrow(tdf)
+      tdf <- data.frame(Response = names(tbl), Count = tbl[1:nrow(tbl)]) # nrow was length
+      avg <- sum(tdf$Count.Freq) / nrow(tdf)
   
-      ggplot(tdf,aes(x=Response, y = Count)) + geom_bar(stat="identity",fill="#777777") + geom_hline(yintercept = avg)
+      ggplot(tdf,aes(x=Response, y = Count.Freq)) + geom_bar(stat="identity",fill="#777777") + geom_hline(yintercept = avg)
     } else if (denull(input$distroRadio) == "matched") {
       
       tbl <- table(df[[SID]],df[[target]])

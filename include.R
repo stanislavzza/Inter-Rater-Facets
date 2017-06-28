@@ -63,7 +63,7 @@ simulate_lambda <- function(n_matrix, column,column2, iterations){
   ls
 } 
 
-lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, graph_max = 10000){
+lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, graph_max = 10000, normalize = FALSE){
   results <- data.frame() # place to put graph information
   text_annotation <- data.frame()
   dotted <- data.frame() # reference line
@@ -94,13 +94,29 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
         # there might not be anything here....
         if (nrow(p_matrix)==0) next
         
-        row_ns <- rowSums(p_matrix) # for use in computing the statisics
+        
         N <- sum(p_matrix)
+        row_ns <- rowSums(p_matrix) # for use in computing the statisics
+        scale1 <- 1 # only used when normalizing
+        scale2 <- 1
+        
         p_1 <- sum(p_matrix$inclass) / N
         p_2 <- sum(p_matrix$outclass) / N
         
+        # now we do some black magic if the rescale option is enabled
+        if(normalize == TRUE) {
+          # we want to scale the matrix so both columns sum to the same amount
+          # while keeping the sum the same (so it won't throw the count off)
+          scale1 <- .5/sum(p_matrix[,1])*N
+          scale2 <- .5/sum(p_matrix[,2])*N
+          p_matrix[,1] <- p_matrix[,1]*scale1
+          p_matrix[,2] <- p_matrix[,2]*scale2
+          
+          # now we have an artificial (.5, .5) distribution
+        }
+
         # we can now calculate p_values
-        ls <- lambda_stats_n(p_1,row_ns,graph=TRUE) #generate the lambda statistics
+        ls <- lambda_stats_n(p_1,row_ns,graph=TRUE, scale1 = scale1, scale2 = scale2) #generate the lambda statistics
         l <- sum(sqrt(rowSums(p_matrix*p_matrix)))/N # actual length
         kappa <- (l - ls$lambda_mean)/(1- ls$lambda_mean)
         
@@ -177,7 +193,7 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
 }
 
 
-lambda_stats_n <- function(p,counts, graph=FALSE){ 
+lambda_stats_n <- function(p,counts, graph=FALSE, scale1 = 1, scale2 = 1){ 
   # returns the expected value for lambda given that p_1 = p (hence p_2 = 1-p) 
   # with a column of possibly different n rater rows
   # we imagine filling in a single subject's ratings with n, using binomial distribution
@@ -200,7 +216,7 @@ lambda_stats_n <- function(p,counts, graph=FALSE){
                          ylen = seq(n,0,-1),  # how many outcome 1s are in this row
                          xlen = seq(0,n,1)  # how many outcome 2s are in this row 
       )
-      data$length <- sqrt(data$xlen^2 + data$ylen^2) /M # divide by M, the total number of ratings in our set
+      data$length <- sqrt((data$xlen*scale2)^2 + (data$ylen*scale1)^2) /M # divide by M, the total number of ratings in our set
       
       #data$prob <- data$bc * p^data$ylen * (1-p)^data$xlen
       data$prob <- dbinom(seq(0,n), size=n, prob=1-p)
@@ -235,6 +251,11 @@ lambda_stats_n <- function(p,counts, graph=FALSE){
       plot_data$ylen <- plot_data$ylen * plot_data$count
       plot_data$length <- plot_data$length * plot_data$count
       arc_length <- arc_length + sum(plot_data$length)
+      
+      # optional rescaling
+      plot_data$xlen <- plot_data$xlen * scale2
+      plot_data$ylen <- plot_data$ylen * scale1
+      # arc length has already been recaled
       
       # create arc segments
       arc <- data.frame(x = cumsum(c(0,plot_data$xlen)), y = cumsum(c(0,plot_data$ylen)))

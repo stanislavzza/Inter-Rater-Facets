@@ -41,6 +41,7 @@ shinyUI( #fluidPage(
       htmlOutput("targetVar"),          # select the variable to predict
       htmlOutput("targetRangeIn"),    # select the inclass
       htmlOutput("sampleSize"),
+      htmlOutput("normalizeCB"),
       htmlOutput("action"),
       htmlOutput("distroRadio")
     ), #end of sidebar panel
