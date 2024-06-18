@@ -151,7 +151,7 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
           y_coord <- p_1
         }
         
-        t <- data.frame(p=round(p_value,3), k = round(kappa,2),gini = gini, N = N,col1 = outcome1,col2=outcome2,x=x_coord,y=y_coord,3) # x=.3,y=.15
+        t <- data.frame(p=p_fmt(p_value), k = paste0("K=",round(kappa,2)),gini = gini, N = paste0("N=",N),col1 = outcome1,col2=outcome2,x=x_coord,y=y_coord,3) # x=.3,y=.15
         
         # ready to accumulate now
         results <- rbind(results,p_matrix)
@@ -163,6 +163,7 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
     
   }
   })
+  
   
   # a huge data set takes forever to plot, so reduce it if that's the case
   if (nrow(results) > graph_max) { # 10000 by default
@@ -180,9 +181,9 @@ lambda_graph_facets <- function(n_matrix,iterations=0,text_size=10,zoom=NULL, gr
   withProgress(message = 'Plotting', value = 0, {
   #require(grid) # in order to make arrows
   g <- ggplot(data = results, aes(x=outclass,y=inclass)) + 
-    geom_text(aes(x=x,y=y,label=paste0("p = ",p, "\nK = ",k,"\nGini = ",round(gini,2),"\nN = ",N) ),data=text_annotation,size=text_size,parse=FALSE) +
+    geom_text(aes(x=x,y=y,label=paste0(p, "\n", k,"\n",N) ),data=text_annotation,size=text_size,parse=FALSE) +
     geom_point(size = .5) +
-    geom_line(data = dotted, mapping = aes(x = x, y= y), size = .5,linetype = 1, color = "gray") +
+    geom_line(data = dotted, mapping = aes(x = x, y= y), size = .65,linetype = 1, color = "gray") +
     theme_classic() + xlab(paste("Outcome")) + ylab(paste("Outcome")) +
     facet_grid(col1 ~ col2)
     
@@ -293,4 +294,11 @@ computeAUC <- function(tbl){
   t <- (mysum + oldy)/2
   
   return(t) # t may be less than .5 if the order is bad
+}
+
+p_fmt <- function(p){
+  if (round(p,3) == 1)  {return("p=1")}
+  if (p < .001){ return("p<.001")}
+  
+  paste0("p=.",sprintf("%03d",round(p*1000)))
 }
