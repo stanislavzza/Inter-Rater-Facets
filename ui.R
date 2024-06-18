@@ -17,63 +17,61 @@ library(shiny)
 
 options(shiny.maxRequestSize = 200*1024^2) # allow large files
 
-fluidPage(
-    titlePanel("Inter-Rater Facets"),
-    
-    sidebarLayout(  
-        sidebarPanel(
-            #actionButton("console","server console"), # uncomment this to enable debugging <------------
-            
-            ########### Loading Data ##################################
-            
-            helpText(a("[See User Guide]",href="http://github.com/stanislavzza/Inter-Rater/wiki")),
-            helpText("Send feedback to deubanks.office@gmail.com"),
-            htmlOutput("dataFileUploader"),   # upload data files
-            htmlOutput("dataType"),
-            htmlOutput("subjectID"),
-            htmlOutput("ratingNames"), # are ratings in their own columns?
-            htmlOutput("ratingVals"), # values for the ratings
-            htmlOutput("dataDoneButton"),     # button to signify finished loading
-            
-            ########### Analysis of Data ##############################
-            
-            htmlOutput("targetVar"),          # select the variable to predict
-            htmlOutput("targetRangeIn"),    # select the inclass
-            htmlOutput("sampleSize"),
-            htmlOutput("normalizeCB"),
-            htmlOutput("action"),
-            htmlOutput("distroRadio")
-        ), #end of sidebar panel
-        
-        mainPanel(
-            # turn off the messages. They still appear in the console. 
-            #tags$style(type="text/css",
-            #           ".shiny-output-error { visibility: hidden; }",
-            #           ".shiny-output-error:before { visibility: hidden; }"),
-            tabsetPanel(id = "tabs", type = "tabs",
-                        
-                        tabPanel("Data", 
-                                 fluidRow(
-                                     column(12, tableOutput("dataPanelHeader")),
-                                     column(12, textOutput("dataTypeInstructions")),
-                                     column(12, tableOutput("dataTypeExample")),
-                                     column(12, dataTableOutput("varStats"))
-                                 )
-                        ), # end of Data Tabpanel
-                        tabPanel("Distribution",
-                                 fluidRow(
-                                     column(12, plotOutput('distGraph')),
-                                     column(12, textOutput('chiSquared'))
-                                 )
-                        ),
-                        tabPanel("Facets", 
-                                 fluidRow(
-                                     column(12, plotOutput('facetGraph',height = 650))
-                                 )
-                        )
-            ) # end of tabsetPanel
-        ), # end of main panel
-        position = c("left", "right"),
-        fluid = TRUE
-    ) # end of sidebarLayout
-) # end of fluidPage
+shinyUI( 
+  pageWithSidebar(
+    headerPanel(""),
+    sidebarPanel(
+      h3("Inter-Rater Facets"),
+      
+      #actionButton("console","server console"), # uncomment this to enable debugging <------------
+      
+      ########### Loading Data ##################################
+      
+      helpText(a("[See User Guide]",href="http://github.com/stanislavzza/Inter-Rater/wiki")),
+      helpText("Send feedback to deubanks.office@gmail.com"),
+      htmlOutput("dataFileUploader"),   # upload data files
+      htmlOutput("dataType"),
+      htmlOutput("subjectID"),
+      htmlOutput("ratingNames"), # are ratings in their own columns?
+      htmlOutput("ratingVals"), # values for the ratings
+      htmlOutput("dataDoneButton"),     # button to signify finished loading
+      
+      ########### Analysis of Data ##############################
+      
+      htmlOutput("targetVar"),          # select the variable to predict
+      htmlOutput("targetRangeIn"),    # select the inclass
+      htmlOutput("sampleSize"),
+      htmlOutput("normalizeCB"),
+      htmlOutput("action"),
+      htmlOutput("distroRadio")
+    ), #end of sidebar panel
+    mainPanel(
+      # turn off the messages. They still appear in the console. 
+      tags$style(type="text/css",
+                 ".shiny-output-error { visibility: hidden; }",
+                 ".shiny-output-error:before { visibility: hidden; }"),
+      tabsetPanel(id = "tabs",
+                  
+                  tabPanel("Data", 
+                           fluidRow(
+                             column(12, tableOutput("dataPanelHeader")),
+                             column(12, textOutput("dataTypeInstructions")),
+                             column(12, tableOutput("dataTypeExample")),
+                             column(12, dataTableOutput("varStats"))
+                           )
+                  ), # end of Data Tabpanel
+                  tabPanel("Distribution",
+                           fluidRow(
+                             column(12, plotOutput('distGraph')),
+                             column(12, textOutput('chiSquared'))
+                           )
+                  ),
+                  tabPanel("Facets", 
+                           fluidRow(
+                             column(12, plotOutput('facetGraph',height = 650))
+                           )
+                  )
+      ) # end of tabsetPanel
+    ) # end of main panel
+  ) # end of page with sidebar
+) # end of ShinyUI
